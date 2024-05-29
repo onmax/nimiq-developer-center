@@ -1,6 +1,6 @@
 # Nimiq's Validator Trust Score
 
-An algorithm that calculates a score to help users assess how reliable a validator is. {.subline}
+An algorithm that calculates a score to help users assess how reliable a validator is{.subline .mb-32}
 
 We will use this score to display in the Nimiq wallet to help users decide which validator to trust.
 
@@ -22,7 +22,7 @@ Preview of the Validator Trust Score in the Nimiq Wallet
 
 The algorithm, like the blockchain itself, will be open source, including both its design and implementation.
 
-The implementation is currently under development and will be available as an `npm` library.
+The implementation is currently under development and will be available as an `npm` package.
 
 In addition, an API *may* be publicly available for anyone to use, allowing access to the score. We will be sharing more information about this API in the future.
 
@@ -53,16 +53,22 @@ m = \frac{\text{window\_duration\_ms}}{\text{epoch\_duration}}
 $$
 
 $$
-$\text{window\_duration\_ms} = 9 \times 30 \times 24 \times 60 \times 60 \times 1000$.
+\text{window\_duration\_ms} = 9 \times 30 \times 24 \times 60 \times 60 \times 1000$.
 $$
 
 $$
-$\text{epoch\_duration} = \text{block\_duration} \times \text{blocks\_per\_epoch}
+\text{epoch\_duration} = \text{block\_duration} \times \text{blocks\_per\_epoch}
 $$
 
   - Block duration and blocks per epoch are constants from the [policy](https://github.com/nimiq/core-rs-albatross/blob/albatross/primitives/src/policy.rs)
 
 </details>
+
+<Callout type="info" no-title>
+
+The curves and constants presented in this document are subject to change at any time in the future. We will keep the community informed of any changes.
+
+</Callout>
 
 Let's look at how each parameter is calculated:
 
@@ -94,6 +100,7 @@ For example:
 
 - A validator with a size of 0.1 would have a size factor of $0.974$.
 - A validator with a size of 0.15 would have a size factor of $0.87$.
+- A validator with a size of 0.25 or more would have a size factor of $0$.
 
 <Callout type="info" no-title>
 
@@ -103,9 +110,14 @@ Due to technical limitations, we can currently only calculate the size of valida
 
 ### Liveliness
 
+<!-- TODO -->
+<!-- The idea was to penalize validators that don't want to participate, being inactive, parked, jailed, etc.
+The problem was that small validators are active in the sense that they want to be elected to produce blocks (which is good for liveness) but since they are not elected there was no way to know if they were actually active.
+You can think of liveness as uptime, the score should be higher if the validator is always online trying to be elected -->
+
 The liveness factor penalises validators that are not selected to produce blocks and encourages validators to be selected.
 
-The score is a moving average of the liveness score for each epoch. First, we calculate the liveness($l_i$) for each epoch.
+The score is a moving average of the liveness score for each epoch. First, we calculate the liveness ($l_i$) for each epoch.
 
 <Callout type="info" no-title>
 
@@ -114,7 +126,7 @@ Take the number of epochs in which the validator was selected and divide by the 
 </Callout>
 
 $$
-[ l_i = \frac{\text{produced}_i}{\text{likelihood}_i}, \quad \text{for } i = 0, 1, 2, \ldots, m-1 ]
+l_i = \frac{\text{produced}_i}{\text{likelihood}_i}, \quad \text{for } i = 0, 1, 2, \ldots, m-1
 $$
 
 where $l_0$ is the liveness value of the most recent epoch and $l_{m-1}$ is the liveness of the oldest epoch.
@@ -122,9 +134,7 @@ where $l_0$ is the liveness value of the most recent epoch and $l_{m-1}$ is the 
 To combine all the liveness scores into a single value, we do a moving average, where more recent epochs have higher weights than older ones.
 
 $$
-
 \bar{L} = \frac{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right) l_i}{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right)}, \quad a = 0.5
-
 $$
 
 Being $a$, the parameter determining how much the observation of the oldest epoch is worth relative to the observation of the newest epoch.
@@ -167,7 +177,7 @@ We take the number of blocks that the validator produced and received a reward f
 
 <summary children:m-0>
 
-Details on how to calculate the $r_i$
+Details on how to calculate the $r_i$ and $b_j$ values
 
 </summary>
 
@@ -183,14 +193,12 @@ $$
 r_i = \frac{\sum_{j=0}^{B} b_j}{\sum_{j=0}^{B} s_i}
 $$
 
-where $l_0$ is the liveness value of the most recent epoch and $l_{m-1}$ is the liveness of the oldest epoch.
+where $r_0$ is the liveness value of the most recent epoch and $r_{m-1}$ is the liveness of the oldest epoch.
 
 To combine all the liveness scores into a single value, we do a moving average, where more recent epochs have higher weights than older ones.
 
 $$
-
-\bar{L} = \frac{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right) l_i}{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right)}, \quad a = 0.5
-
+\bar{R} = \frac{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right) r_i}{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right)}, \quad a = 0.5
 $$
 
 Being $a$, the parameter determining how much the observation of the oldest epoch is worth relative to the observation of the newest epoch.
