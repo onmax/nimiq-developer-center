@@ -76,7 +76,7 @@ Let's look at how each parameter is calculated:
 
 The size factor penalises validators who control too much of the network's share.
 
-We define the size $s$ of a validator as the fraction of the total stake it controls. The size factor is calculated as
+We define the size $S$ of a validator as the fraction of the total stake it controls. The size factor is calculated as
 
 $$
 S = \max \left( 0 , 1 - \left( \frac{s}{t} \right)^{k} \right), \quad \text{being } t = 0.25 \text{ and } k=4
@@ -110,12 +110,15 @@ Due to technical limitations, we can currently only calculate the size of valida
 
 ### Liveliness
 
-<!-- TODO -->
-<!-- The idea was to penalize validators that don't want to participate, being inactive, parked, jailed, etc.
-The problem was that small validators are active in the sense that they want to be elected to produce blocks (which is good for liveness) but since they are not elected there was no way to know if they were actually active.
 You can think of liveness as uptime, the score should be higher if the validator is always online trying to be elected -->
 
 The liveness factor penalises validators that are not selected to produce blocks and encourages validators to be selected.
+
+This means that the liveness score is higher for validators that are frequently selected to produce blocks and will be lower for those validators that are not selected due to being inactive, parked, jailed, etc.
+
+The problem was that small validators are active in the sense that they want to be elected to produce blocks (which is good for liveness) but since they are not elected there was no way to know if they were actually active.
+
+You can think as Liveness as the _uptime_ of validator. We didn't want to call it _uptime_ though becuase _uptime_ is a term that is frequently used in the context of servers and it is a value that suggest exactitude. In our context, there is no way to measure how much time a validator has been online, so to avoid confusion we decided to call it _liveness_.
 
 The score is a moving average of the liveness score for each epoch. First, we calculate the liveness ($l_i$) for each epoch.
 
