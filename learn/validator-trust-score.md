@@ -1,10 +1,8 @@
 # Nimiq's Validator Trust Score
 
-An algorithm that calculates a score to help users assess how reliable a validator is{.subline .mb-32}
+An algorithm that calculates a score to help users assess how reliable a validator is.{.subline .mb-32}
 
-We will use this score to display in the Nimiq wallet to help users decide which validator to trust.
-
-The score ranges from 0 to 1, where 0 means not trustworthy at all and 1 means highly trustworthy.
+We will use this score in the Nimiq Wallet to help users decide which validator to trust. The score ranges from 0 to 1, where 0 is not trustworthy at all and 1 is highly trustworthy.
 
 <figure>
 
@@ -20,25 +18,23 @@ Preview of the Validator Trust Score in the Nimiq Wallet
 
 ## Open source
 
-The algorithm, like the blockchain itself, will be open source, including both its design and implementation.
+The algorithm, like the blockchain itself, will be open source. This includes its design as well as its implementation. The implementation is currently under development and will be available as an `npm` package.
 
-The implementation is currently under development and will be available as an `npm` package.
-
-In addition, an API *may* be publicly available for anyone to use, allowing access to the score. We will be sharing more information about this API in the future.
+An API _may_ also be made available for public use to access the score. More information about this API will be provided in the future.
 
 ## The VTS algorithm
 
-The algorithm is a product of three factors: Size, Liveness and Reliability, each ranging from 0 to 1.
+The algorithm uses three factors: Size, Reliability, and Liveness. Each factor ranges from 0 to 1.
 
 $$
-T = S \times L \times R
+T = S \times R \times L
 $$
 
-The Size factor depends solely on the current distribution of bets. Conversely, the Reliability and Liveness scores are based on their behaviour over the last 9 months, which we believe is a sufficient period to evaluate a validator. Behaviour older than 9 months is excluded from the score calculation.
+The Size factor is based on the size of the validator's stake relative to the total stake in the network.
 
-We only consider completed epochs, not the currently active epoch. Therefore, the score is not a live value. It can have a delay of +12 hours (an epoch last 12 hours).
+Reliability and Liveness are based on behaviour over the last 9 months. For these parameters we only consider completed epochs, not the currently active one. Therefore, the score is not live and can have a delay of up to 12 hours (an epoch lasts 12 hours).
 
-Before moving forward, we will define $m$, which is the number of epochs to consider knowing that the window duration is 9 months.
+Before going any further, we define $m$, the number of epochs to consider, knowing that the duration of the window is 9 months.
 
 <details>
 
@@ -53,7 +49,7 @@ m = \frac{\text{window\_duration\_ms}}{\text{epoch\_duration}}
 $$
 
 $$
-\text{window\_duration\_ms} = 9 \times 30 \times 24 \times 60 \times 60 \times 1000$.
+\text{window\_duration\_ms} = 9 \times 30 \times 24 \times 60 \times 60 \times 1000
 $$
 
 $$
@@ -74,9 +70,9 @@ Let's look at how each parameter is calculated:
 
 ### Size
 
-The size factor penalises validators who control too much of the network's share.
+This factor penalises validators who control too much of the network's stake.
 
-We define the size $S$ of a validator as the fraction of the total stake it controls. The size factor is calculated as
+We first calculate the percentage of the validator's stake relative to the total stake in the network. We then convert this percentage into a score using a curve that penalises large validators.
 
 $$
 S = \max \left( 0 , 1 - \left( \frac{s}{t} \right)^{k} \right), \quad \text{being } t = 0.25 \text{ and } k=4
@@ -96,29 +92,133 @@ Graph of the size factor. The x-axis represents the size of the validator, and t
 
 </figure>
 
-For example:
+Here you can see some examples depending on the stake percentage:
 
-- A validator with a size of 0.1 would have a size factor of $0.974$.
-- A validator with a size of 0.15 would have a size factor of $0.87$.
-- A validator with a size of 0.25 or more would have a size factor of $0$.
+| Stake Percentage | Size Score  |
+| ---------------- | ----------- |
+| 0%               | 1           |
+| 5%               | 0.998       |
+| 10%              | 0.974       |
+| 15%              | 0.87        |
+| 20%              | 0.59        |
+| >=25%            | 0           |
 
 <Callout type="info" no-title>
 
-Due to technical limitations, we can currently only calculate the size of validators active in the current epoch. We cannot calculate the score of a validator in a given timestamp.
+Due to technical limitations, we can currently only calculate the size of validators that are active in the current epoch. We cannot calculate the score of a validator at a given timestamp.
 
 </Callout>
 
+### Reliability
+
+The Reliability factor penalizes validators that inconsistently produce blocks when expected, assessing their active contribution to the network.
+
+The score is a moving average of the reliability score for each epoch. First, we calculate the reliability($r_i$) for each epoch.
+
+<Callout type="info" no-title>
+
+$r_i$ is the number of blocks that the validator produced and received a reward for ($C_i$) divided by the number of blocks that the validator was likely to produce ($H_i$).
+
+</Callout>
+
+<details>
+
+<summary children:m-0>
+
+Details on how to calculate $C_i$
+
+</summary>
+
+$C_i$ is the number of blocks produced (created) by a validator in the epoch $i$:
+
+$$
+C_i = \sum_{j=0}^{N-1} c_j \quad \text{for } i = 0, 1, 2, \ldots, m-1
+$$
+
+$c_j$ is the number of blocks that the validator produced in the batch $j$, where $j \in [0, N-1]$.
+
+- $N$ is the number of batches in an epoch that can be retrieved from the [policy](htts://github.com/nimiq/core-rs-albatross/blob/albatross/primitives/src/policy.rs).
+- The number of blocks that the validators produced can be fetched from the blockchain via the rewarded inherent of a batch.
+
+</details>
+
+<details>
+
+<summary children:m-0>
+
+Details on how to calculate $H_i$
+
+</summary>
+
+$H_i$ is the likelihood that a validator will produce a block in the epoch $i$:
+
+$$
+H_i = \frac{h_{i,v}}{\sum_{k=0}^{V_i-1} h_{i,v}} \quad \text{for } i = 0, 1, 2, \ldots, m-1
+$$
+
+- $V_i$ is the number of active validators in the epoch $i$.
+- $h_{i,v}$ is the slot number for the validator $v$ in the epoch $i$.
+
+</details>
+
+$$
+r_i = \frac{C_i}{H_i}, \quad \text{for } i = 0, 1, 2, \ldots, m-1
+$$
+
+where $r_0$ is the Reliability value of the most recent epoch and $r_{m-1}$ is the Reliability of the oldest epoch.
+
+To combine all the Reliability scores into a single value, we do a moving average, where more recent epochs have higher weights than older ones.
+
+$$
+\bar{R} = \frac{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right) r_i}{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right)}, \quad a = 0.5
+$$
+
+Being $a$, the parameter determining how much the observation of the oldest epoch is worth relative to the observation of the newest epoch.
+
+#### Adjusting for High-Reliability Expectations
+
+The previous formula provides a weighted moving average score for validators reliability in block production, where a score of $0.9$ indicates a significant downtime of 10%[*](#notice-0.9), highlighting recent performance and the need for improved consistency.
+
+To better reflect the high standards required, we will plot the value on a circle, with $c$ as the parameter defining the slope of the arc.
+
+$$
+R=-c+1-\sqrt{-\bar{R}^{2}+2c\bar{R}+\left(c-1\right)^{2}}
+$$
+
+$$
+\text{Center of circle at (c,-c+1), where }
+c=-0.16
+$$
+
+<figure>
+
+<iframe src="https://www.desmos.com/calculator/zqemsh7yay?embed" aspect-video frameborder="0" allowfullscreen></iframe>
+
+<figcaption>
+
+Graph of the reliability score adjustment. The x-axis represents the reliability score, and the y-axis represents the adjusted reliability score.
+
+</figcaption>
+
+</figure>
+
+What we achieve with this adjustment is to penalise more severely those validators that have a low reliability score and are unable to produce blocks when expected.
+
+<small text-12 id="notice-0.9">
+* Using 10% is only a heavy approximation. The value of $0.9 could represent 10% downtime, but also 20% or 5%, depending on when the downtime occurred. We say 10% to help the reader understand the scale of the score.
+</small>
+
 ### Liveliness
 
-You can think of liveness as uptime, the score should be higher if the validator is always online trying to be elected -->
+Liveness measures how often a validator is online and selected to produce blocks. We want validators to be active because it ensures that the network runs smoothly and securely.
 
-The liveness factor penalises validators that are not selected to produce blocks and encourages validators to be selected.
+#### Why Liveness
 
-This means that the liveness score is higher for validators that are frequently selected to produce blocks and will be lower for those validators that are not selected due to being inactive, parked, jailed, etc.
+If a validator is not active producing blocks, it could still have a high Size and Reliability score. This would be misleading because they are not contributing to the operation of the network. The Liveness factor ensures that only active validators that are actually selected to produce blocks receive a higher score. We want to penalize validators that are not selected to produce blocks due of being inactive, jailed, offline, etc.
 
-The problem was that small validators are active in the sense that they want to be elected to produce blocks (which is good for liveness) but since they are not elected there was no way to know if they were actually active.
+We use the term _liveness_ instead of _uptime_ because _uptime_ suggests precision, as in server contexts where the exact online time can be measured. In our context, there is no way to measure how long a validator has been online. We can only know when the validators have been active and producing blocks, but there is no way of knowing when they are active but not producing blocks, or when they are offline. In summary, to avoid confusion, we use _liveness_ to represent how often a validator is actively selected to produce blocks.
 
-You can think as Liveness as the _uptime_ of validator. We didn't want to call it _uptime_ though becuase _uptime_ is a term that is frequently used in the context of servers and it is a value that suggest exactitude. In our context, there is no way to measure how much time a validator has been online, so to avoid confusion we decided to call it _liveness_.
+#### How to calculate Liveness
 
 The score is a moving average of the liveness score for each epoch. First, we calculate the liveness ($l_i$) for each epoch.
 
@@ -129,7 +229,11 @@ Take the number of epochs in which the validator was selected and divide by the 
 </Callout>
 
 $$
-l_i = \frac{\text{produced}_i}{\text{likelihood}_i}, \quad \text{for } i = 0, 1, 2, \ldots, m-1
+l_i =
+\begin{cases}
+1 & \text{if validator was selected in epoch } i \\
+0 & \text{otherwise}
+\end{cases} \quad \text{for } i = 0, 1, 2, \ldots, m-1
 $$
 
 where $l_0$ is the liveness value of the most recent epoch and $l_{m-1}$ is the liveness of the oldest epoch.
@@ -159,75 +263,6 @@ $$
 <figcaption>
 
 Graph of the liveness score adjustment. The x-axis represents the liveness score, and the y-axis represents the adjusted liveness score.
-
-</figcaption>
-
-</figure>
-
-### Reliability
-
-The Reliability factor penalizes validators that inconsistently produce blocks when expected, assessing their active contribution to the network.
-
-The score is a moving average of the reliability score for each epoch. First, we calculate the reliability($r_i$) for each epoch.
-
-<Callout type="info" no-title>
-
-We take the number of blocks that the validator produced and received a reward for and divide it by the number of blocks that the validator was likely to produce.
-
-</Callout>
-
-<details>
-
-<summary children:m-0>
-
-Details on how to calculate the $r_i$ and $b_j$ values
-
-</summary>
-
-The number of blocks that the validators produced can be fetched from the blockchain via the inherents of a batch. We will refer to these value as $b_j$, where $j \in [0, B]$. $B$ is the number of batches in an epoch.
-
-Figuring out how many blocks a validator is likely to produce is a bit trickier. In each voting block we can see the slot distribution for the next epoch. Basically, there will be a value from 1 to 512 for each active validator. A value of 1 means that the validator is likely to make 1 out of 512 blocks, while a value of 512 means that the validator is likely to make all the blocks. We need to convert this number into a probability, a value between 0 and 1.
-
-Here, $s_j$ is the slot distribution value for the batch $j$. This value tells us the probability that a validator will produce a block in that batch.
-
-</details>
-
-$$
-r_i = \frac{\sum_{j=0}^{B} b_j}{\sum_{j=0}^{B} s_i}
-$$
-
-where $r_0$ is the liveness value of the most recent epoch and $r_{m-1}$ is the liveness of the oldest epoch.
-
-To combine all the liveness scores into a single value, we do a moving average, where more recent epochs have higher weights than older ones.
-
-$$
-\bar{R} = \frac{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right) r_i}{\sum_{i=0}^{m-1} \left( 1-a\frac{i}{m-1} \right)}, \quad a = 0.5
-$$
-
-Being $a$, the parameter determining how much the observation of the oldest epoch is worth relative to the observation of the newest epoch.
-
-#### Adjusting for High-Reliability Expectations
-
-The previous formula provides a weighted moving average score for server reliability in block production, where a score of $0.9$ indicates a significant downtime of 10%, highlighting recent performance and the need for improved consistency.
-
-As one block is missing, this is a significant shortfall. To better reflect the high standards required, we will plot the value on a circle, having $c$ as the parameter defining the slope of the arc.
-
-$$
-R=-c+1-\sqrt{-\bar{R}^{2}+2c\bar{R}+\left(c-1\right)^{2}}
-$$
-
-$$
-\text{Center of circle at (c,-c+1), where }
-c=-0.16
-$$
-
-<figure>
-
-<iframe src="https://www.desmos.com/calculator/zqemsh7yay?embed" aspect-video frameborder="0" allowfullscreen></iframe>
-
-<figcaption>
-
-Graph of the reliability score adjustment. The x-axis represents the reliability score, and the y-axis represents the adjusted reliability score.
 
 </figcaption>
 
