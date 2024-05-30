@@ -2,13 +2,22 @@
 
 An algorithm that calculates a score to help users assess how reliable a validator is.{.subline .mb-32}
 
-
 The Validator Trust Score (VTS) algorithm is designed to help users assess the reliability of validators in the Nimiq Wallet. This score ranges from 0 to 1, where 0 indicates a validator is not trustworthy, and 1 indicates a highly trustworthy validator. This way, stakers can make better informed decisions about which validators to trust. The VTS algorithm is based on three key factors:
 
 - **Size**: Evaluates the size of the validator's stake relative to the total stake in the network, penalizing validators with higher stakes to prevent centralization.
 - **Reliability**: Assesses the consistency of a validator in producing blocks over the past 9 months.
 - **Liveness**: Measures how often a validator is online and selected to produce blocks.
 
+<div my-64 rounded-6 bg-orange-400 bg-op-50 text="[#E07802]" px-24 py-16 ring="1.5 orange-600" relative of-hidden class="raw">
+  <div flex="~ items-center gap-12" text-18 font-bold mb-8>
+    <div i-nimiq:bell text-16 op-70 />
+    Heads up
+  </div>
+  <p pr-32 md:pr-64>
+    The Validator Trust Score is still under heavy development and nothing is final. Feel free to share your <a href="#suggestions-feedback" underline text-inherit>Suggestions or Feedback</a>.
+  </p>
+  <div i-custom:crane absolute text-90 md:text-128 right--12 bottom--16 md:top-6 rotate-y-180 op-20 pointer-events-none />
+</div>
 
 <figure>
 
@@ -25,7 +34,6 @@ Preview of the Validator Trust Score in the Nimiq Wallet
 ---
 
 The VTS algorithm is open source, with its design and implementation available to the public, just like our blockchain. The implementation is currently under development and will be available as an `npm` package. An API may also be made available for public use to access the score. More information about this API will be provided in the future. This document details the calculation methods for each factor.
-
 
 ## The VTS algorithm
 
@@ -69,14 +77,20 @@ The curves and constants presented in this document are subject to change at any
 
 </Callout>
 
-Let's look at how each parameter is calculated:
-
 ### Size
 
 The Size factor ensures that no single validator controls too much of the network's total stake. If a validator controls a large portion of the total stake, they will get a lower score. We penalize validators with a higher stake compared to those with a lower stake, as a lower stake promotes a fair distribution of control across the network.
 
+First, we calculate the stake percentage ($s$) of the validator in the network:
+
 $$
-S = \max \left( 0 , 1 - \left( \frac{s}{t} \right)^{k} \right), \quad \text{being } t = 0.25 \text{ and } k=4
+s = \frac{v}{t}
+$$
+
+Where $v$ is the validator's stake and $t$ is the total stake in the network. Then, we apply a curve to the stake percentage to calculate the Size score ($S$).
+
+$$
+S = \max \left( 0 , 1 - s^{k} \right), \quad \text{being } t = 0.25 \text{ and } k=4
 $$
 
 Where $t$ is the threshold and $k$ is the slope of the curve
@@ -124,7 +138,7 @@ $r_i$ is the number of blocks that the validator produced and received a reward 
 
 <summary children:m-0>
 
-Details on how to calculate $C_i$
+Calculation of $C_i$
 
 </summary>
 
@@ -145,17 +159,17 @@ $c_j$ is the number of blocks that the validator produced in the batch $j$, wher
 
 <summary children:m-0>
 
-Details on how to calculate $H_i$
+Calculation of $H_i$
 
 </summary>
 
 $H_i$ is the likelihood that a validator will produce a block in the epoch $i$:
 
 $$
-H_i = \frac{h_{i,v}}{\sum_{k=0}^{V_i-1} h_{i,v}} \quad \text{for } i = 0, 1, 2, \ldots, m-1
+H_i = \frac{h_{i,v}}{\sum_{k=0}^{V-1} h_{i,v}} \quad \text{for } i = 0, 1, 2, \ldots, m-1
 $$
 
-- $V_i$ is the number of active validators in the epoch $i$.
+- $V$ is the number of active validators in the epoch $i$.
 - $h_{i,v}$ is the slot number for the validator $v$ in the epoch $i$.
 
 </details>
