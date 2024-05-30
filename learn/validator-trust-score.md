@@ -2,7 +2,13 @@
 
 An algorithm that calculates a score to help users assess how reliable a validator is.{.subline .mb-32}
 
-We will use this score in the Nimiq Wallet to help users decide which validator to trust. The score ranges from 0 to 1, where 0 is not trustworthy at all and 1 is highly trustworthy.
+
+The Validator Trust Score (VTS) algorithm is designed to help users assess the reliability of validators in the Nimiq Wallet. This score ranges from 0 to 1, where 0 indicates a validator is not trustworthy, and 1 indicates a highly trustworthy validator. This way, stakers can make better informed decisions about which validators to trust. The VTS algorithm is based on three key factors:
+
+- **Size**: Evaluates the size of the validator's stake relative to the total stake in the network, penalizing validators with higher stakes to prevent centralization.
+- **Reliability**: Assesses the consistency of a validator in producing blocks over the past 9 months.
+- **Liveness**: Measures how often a validator is online and selected to produce blocks.
+
 
 <figure>
 
@@ -16,23 +22,20 @@ Preview of the Validator Trust Score in the Nimiq Wallet
 
 </figure>
 
-## Open source
+---
 
-The algorithm, like the blockchain itself, will be open source. This includes its design as well as its implementation. The implementation is currently under development and will be available as an `npm` package.
+The VTS algorithm is open source, with its design and implementation available to the public, just like our blockchain. The implementation is currently under development and will be available as an `npm` package. An API may also be made available for public use to access the score. More information about this API will be provided in the future. This document details the calculation methods for each factor.
 
-An API _may_ also be made available for public use to access the score. More information about this API will be provided in the future.
 
 ## The VTS algorithm
 
-The algorithm uses three factors: Size, Reliability, and Liveness. Each factor ranges from 0 to 1.
+The algorithm uses three factors: **S**ize, **R**eliability, and **L**iveness. Each factor ranges from 0 to 1.
 
 $$
 T = S \times R \times L
 $$
 
-The Size factor is based on the size of the validator's stake relative to the total stake in the network.
-
-Reliability and Liveness are based on behaviour over the last 9 months. For these parameters we only consider completed epochs, not the currently active one. Therefore, the score is not live and can have a delay of up to 12 hours (an epoch lasts 12 hours).
+The Size factor is based on the size of the validator's stake relative to the total stake in the network. Reliability and Liveness are based on behaviour over the last 9 months. For these parameters we only consider completed epochs, not the currently active one. Therefore, the score is not live and can have a delay of up to 12 hours (an epoch lasts 12 hours).
 
 Before going any further, we define $m$, the number of epochs to consider, knowing that the duration of the window is 9 months.
 
@@ -70,9 +73,7 @@ Let's look at how each parameter is calculated:
 
 ### Size
 
-This factor penalises validators who control too much of the network's stake.
-
-We first calculate the percentage of the validator's stake relative to the total stake in the network. We then convert this percentage into a score using a curve that penalises large validators.
+The Size factor ensures that no single validator controls too much of the network's total stake. If a validator controls a large portion of the total stake, they will get a lower score. We penalize validators with a higher stake compared to those with a lower stake, as a lower stake promotes a fair distribution of control across the network.
 
 $$
 S = \max \left( 0 , 1 - \left( \frac{s}{t} \right)^{k} \right), \quad \text{being } t = 0.25 \text{ and } k=4
@@ -111,9 +112,7 @@ Due to technical limitations, we can currently only calculate the size of valida
 
 ### Reliability
 
-The Reliability factor penalizes validators that inconsistently produce blocks when expected, assessing their active contribution to the network.
-
-The score is a moving average of the reliability score for each epoch. First, we calculate the reliability($r_i$) for each epoch.
+The Reliability factor measures how consistent a validator is when it comes to producing blocks when they should. Validators who regularly produce the blocks they are expected to will have a high reliability score. On the other hand, validators who often fail to produce their expected blocks will have a lower reliability score. The score is a moving average of the reliability score for each epoch. First, we calculate the reliability($r_i$) for each epoch.
 
 <Callout type="info" no-title>
 
@@ -165,7 +164,7 @@ $$
 r_i = \frac{C_i}{H_i}, \quad \text{for } i = 0, 1, 2, \ldots, m-1
 $$
 
-where $r_0$ is the Reliability value of the most recent epoch and $r_{m-1}$ is the Reliability of the oldest epoch.
+Where $r_0$ is the Reliability value of the most recent epoch and $r_{m-1}$ is the Reliability of the oldest epoch.
 
 To combine all the Reliability scores into a single value, we do a moving average, where more recent epochs have higher weights than older ones.
 
@@ -210,7 +209,7 @@ What we achieve with this adjustment is to penalise more severely those validato
 
 ### Liveliness
 
-Liveness measures how often a validator is online and selected to produce blocks. We want validators to be active because it ensures that the network runs smoothly and securely.
+The Liveness factor measures how often a validator is online and selected to produce blocks. We want validators to be active because it ensures the network runs smoothly and securely. Validators that are frequently online and producing blocks receive a higher score, promoting consistent participation and reliability.
 
 #### Why Liveness
 
