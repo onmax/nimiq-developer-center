@@ -128,7 +128,7 @@ Due to technical limitations, we can currently only calculate the size of valida
 
 ### Reliability
 
-The Reliability factor measures how consistent a validator is when it comes to producing blocks when they should. Validators who regularly produce the blocks they are expected to will have a high reliability score. On the other hand, validators who often fail to produce their expected blocks will have a lower reliability score. The score is a moving average of the reliability score for each epoch. First, we calculate the reliability($r_i$) for each epoch.
+The Reliability factor measures how consistent a validator is when it comes to producing blocks when they should. Validators who regularly produce the blocks they are expected to will have a high reliability score. On the other hand, validators who often fail to produce their expected blocks will have a lower reliability score. The score is a moving average of the reliability score for each epoch. First, we calculate the reliability ($r_i$) for each epoch.
 
 <Callout type="info" no-title>
 
