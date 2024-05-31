@@ -144,7 +144,7 @@ Calculation of $C_i$
 
 </summary>
 
-$C_i$ is the number of blocks produced (created) by a validator in the epoch $i$:
+$C_i$ rewarded blocks (and thus produced) by a validator in the epoch $i$:
 
 $$
 C_i = \sum_{j=0}^{N-1} c_j \quad \text{for } i = 0, 1, 2, \ldots, m-1
