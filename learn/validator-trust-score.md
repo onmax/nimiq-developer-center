@@ -231,7 +231,9 @@ The Liveness factor measures how often a validator is online and selected to pro
 
 If a validator is not active and producing blocks, it could still have a high Size and Reliability score. This would be misleading because they are not contributing to the operation of the network. The Liveness factor ensures that only active validators that are actually selected to produce blocks receive a higher score. We want to penalise validators that are not selected to produce blocks because they are inactive, jailed, offline, etc.
 
-We use the term _liveness_ instead of _uptime_ because _uptime_ suggests precision, as in server contexts where the exact online time can be measured. In our context, there is no way to measure how long a validator has been online. We can only know when validators have been active and producing blocks, but there is no way of knowing when they are active but not producing blocks, or when they are offline. In summary, to avoid confusion, we use _liveness_ to represent how often a validator is actively selected to produce blocks.
+We use the term _liveness_ instead of _uptime_ because _uptime_ implies precise measurement, as in server contexts where you can measure online time. In our case, we can't measure how long a validator has been online. We can only see when validators are active and producing blocks. There's no way of telling when they're active but not producing blocks, or when they're offline.
+
+To be clear, a validator can be active and offline at the same time. It could be offline and not producing blocks because it's offline, or it could be active but not producing blocks because it hasn't been selected in a certain period. This is why we use _liveness_ to show how often a validator is selected to produce blocks.
 
 #### How to calculate Liveness
 
