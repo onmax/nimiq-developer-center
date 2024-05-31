@@ -95,7 +95,7 @@ $$
 S = \max \left( 0 , 1 - s^{k} \right), \quad \text{being } t = 0.25 \text{ and } k=4
 $$
 
-Where $t$ is the threshold and $k$ is the slope of the curve
+Where $t$ is the threshold and $k$ is the slope of the curve.
 
 <figure mb-16>
 
