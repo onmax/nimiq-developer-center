@@ -87,7 +87,9 @@ $$
 s = \frac{v}{t}
 $$
 
-Where $v$ is the validator's stake and $t$ is the total stake in the network. Then, we apply a curve to the stake percentage to calculate the Size score ($S$).
+Where $v$ is the validator's stake and $t$ is the total stake in the network.
+
+Then, we apply a curve to the stake percentage to calculate the Size score ($S$):
 
 $$
 S = \max \left( 0 , 1 - s^{k} \right), \quad \text{being } t = 0.25 \text{ and } k=4
