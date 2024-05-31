@@ -172,7 +172,7 @@ H_i = \frac{h_{i,v}}{\sum_{k=0}^{V-1} h_{i,v}} \quad \text{for } i = 0, 1, 2, \l
 $$
 
 - $V$ is the number of active validators in the epoch $i$.
-- $h_{i,v}$ is the slot number for the validator $v$ in the epoch $i$.
+- $h_{i,v}$ is the assignated slot number for the validator $v$ in the epoch $i$.
 
 </details>
 
