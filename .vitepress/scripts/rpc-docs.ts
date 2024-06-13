@@ -55,6 +55,44 @@ export async function generateRpcDocs() {
 
   consola.info(`Generating RPC specification docs ${specVersion} ...`)
 
+  const groupMethods: { tags: string[], methods: any[] }[] = spec.methods.reduce((acc, method) => {
+    const tags = method.tags.map(tag => tag.name)
+    const group = acc.find(g => g.tags.includes(tags[0]))
+    if (group)
+      group.methods.push(method)
+    else
+      acc.push({ tags, methods: [method] })
+
+    return acc as { tags: string[], methods: any[] }[]
+  }, [])
+
+  const tocTemplate = `
+
+### List of methods
+
+<ul flex="~ gap-32" of-x-auto relative w-full class="raw" pb-16>
+ {{ columns }}
+</ul>\n\n`
+
+  const columnTemplate = `
+<li flex="~ col shrink-0">
+  <h4 label text-12>{{ tag }}</h4>
+  <nav flex="~ col" of-y-auto max-h-320 curtain-y text="13 blue">
+    {{ links }}
+  </nav>
+</li>`
+
+  const tocColumns = []
+  for (const { tags, methods } of groupMethods) {
+    const links = methods.map(method => `<a href="#${method.name.toLowerCase()}">${method.name}</a>`).join('\n\t\t')
+    const tmp = columnTemplate
+      .replaceAll('{{ tag }}', uppercase(tags.join(' ').replaceAll('_', ' ')))
+      .replaceAll('{{ links }}', links)
+    tocColumns.push(tmp)
+  }
+
+  const toc = tocTemplate.replaceAll('{{ columns }}', tocColumns.join('\n'))
+
   // Methods section
   const methodsMd = []
 
@@ -114,17 +152,6 @@ curl --request POST --url http://127.0.0.1:8648
     }
   }
 
-  const groupMethods: { tags: string[], methods: any[] }[] = spec.methods.reduce((acc, method) => {
-    const tags = method.tags.map(tag => tag.name)
-    const group = acc.find(g => g.tags.includes(tags[0]))
-    if (group)
-      group.methods.push(method)
-    else
-      acc.push({ tags, methods: [method] })
-
-    return acc as { tags: string[], methods: any[] }[]
-  }, [])
-
   for (const { methods, tags } of groupMethods) {
     methodsMd.push(addHeader('h3', uppercase(tags.join(' ').replaceAll('_', ' '))))
     for (const method of methods) {
@@ -156,7 +183,7 @@ curl --request POST --url http://127.0.0.1:8648
   if (!existsSync(buildFolder))
     mkdirSync(buildFolder)
 
-  writeFileSync(join(buildFolder, 'methods.md'), json2md(methodsMd))
+  writeFileSync(join(buildFolder, 'methods.md'), json2md([toc, ...methodsMd]))
   writeFileSync(versionFile, specVersion)
 
   return { specUrl, specVersion }
