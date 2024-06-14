@@ -84,10 +84,10 @@ The Size factor ensures that no single validator controls too much of the networ
 First, we calculate the stake percentage ($s$) of the validator in the network:
 
 $$
-s = \frac{v}{t}
+s = \frac{v}{Z}
 $$
 
-Where $v$ is the validator's stake and $t$ is the total stake in the network.
+Where $v$ is the validator's stake and $Z$ is the total stake in the network.
 
 Then, we apply a curve to the stake percentage to calculate the Size score ($S$):
 
