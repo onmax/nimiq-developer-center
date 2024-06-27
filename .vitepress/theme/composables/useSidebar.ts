@@ -1,40 +1,124 @@
-import { useMediaQuery } from '@vueuse/core'
 import type { DefaultTheme } from 'vitepress/theme'
 import {
   type ComputedRef,
-  type Ref,
   computed,
   onMounted,
-  onUnmounted,
   ref,
   watch,
   watchEffect,
-  watchPostEffect,
 } from 'vue'
 import { isActive } from './useIsActive'
-import {
-  hasActiveLink as containsActiveLink,
-  getSidebar,
-  getSidebarGroups,
-} from './sidebar'
 import { useData } from './useData'
 import { hashRef } from './useHash'
 
-export interface SidebarControl {
-  collapsed: Ref<boolean>
-  collapsible: ComputedRef<boolean>
-  isLink: ComputedRef<boolean>
-  isActiveLink: Ref<boolean>
-  hasActiveLink: ComputedRef<boolean>
-  hasChildren: ComputedRef<boolean>
-  toggle: () => void
+export interface SidebarLink {
+  text: string
+  link: string
+  docFooterText?: string
+}
+
+type SidebarItem = DefaultTheme.SidebarItem
+
+export function getSidebar(_sidebar: DefaultTheme.Sidebar | undefined, path: string): SidebarItem[] {
+  if (Array.isArray(_sidebar))
+    return addBase(_sidebar)
+  if (!_sidebar)
+    return []
+
+  path = ensureStartingSlash(path)
+
+  const dir = Object.keys(_sidebar)
+    .sort((a, b) => {
+      return b.split('/').length - a.split('/').length
+    })
+    .find((dir) => {
+      // make sure the multi sidebar key starts with slash too
+      return path.startsWith(ensureStartingSlash(dir))
+    })
+
+  const sidebar = dir ? _sidebar[dir] : []
+  return Array.isArray(sidebar) ? addBase(sidebar) : addBase(sidebar.items, sidebar.base)
+}
+
+function addBase(items: SidebarItem[], _base?: string): SidebarItem[] {
+  return [...items].map((_item) => {
+    const item = { ..._item }
+    const base = item.base || _base
+    if (base && item.link)
+      item.link = base + item.link
+    if (item.items)
+      item.items = addBase(item.items, base)
+    return item
+  })
+}
+
+export function ensureStartingSlash(path: string): string {
+  return /^\//.test(path) ? path : `/${path}`
+}
+
+export function getFlatSideBarLinks(sidebar: SidebarItem[]): SidebarLink[] {
+  const links: SidebarLink[] = []
+
+  function recursivelyExtractLinks(items: SidebarItem[]) {
+    for (const item of items) {
+      if (item.text && item.link) {
+        links.push({
+          text: item.text,
+          link: item.link,
+          docFooterText: item.docFooterText,
+        })
+      }
+
+      if (item.items)
+        recursivelyExtractLinks(item.items)
+    }
+  }
+
+  recursivelyExtractLinks(sidebar)
+
+  return links
+}
+
+/**
+ * Get or generate sidebar group from the given sidebar items.
+ */
+export function getSidebarGroups(sidebar: SidebarItem[]): SidebarItem[] {
+  const groups: SidebarItem[] = []
+
+  let lastGroupIndex: number = 0
+
+  for (const index in sidebar) {
+    const item = sidebar[index]
+
+    if (item.items) {
+      lastGroupIndex = groups.push(item)
+      continue
+    }
+
+    if (!groups[lastGroupIndex])
+      groups.push({ items: [] })
+
+    groups[lastGroupIndex]!.items!.push(item)
+  }
+
+  return groups
+}
+
+/**
+ * Check if the given sidebar item contains any active link.
+ */
+export function containsActiveLink(path: string, items: SidebarItem | SidebarItem[]): boolean {
+  if (Array.isArray(items))
+    return items.some(item => containsActiveLink(path, item))
+  if (isActive(path, items?.link))
+    return true
+  if (items?.items)
+    return containsActiveLink(path, items.items)
+  return false
 }
 
 export function useSidebar() {
   const { frontmatter, page, theme } = useData()
-  const is960 = useMediaQuery('(min-width: 960px)')
-
-  const isOpen = ref(false)
 
   const _sidebar = computed(() => {
     const sidebarConfig = theme.value.sidebar
@@ -66,92 +150,28 @@ export function useSidebar() {
   })
 
   const leftAside = computed(() => {
-    if (hasAside) {
-      return frontmatter.value.aside == null
-        ? theme.value.aside === 'left'
-        : frontmatter.value.aside === 'left'
-    }
-    return false
+    if (!hasAside)
+      return false
+    return frontmatter.value.aside == null ? theme.value.aside === 'left' : frontmatter.value.aside === 'left'
   })
 
-  const isSidebarEnabled = computed(() => hasSidebar.value && is960.value)
-
-  const sidebarGroups = computed(() => {
-    return hasSidebar.value ? getSidebarGroups(sidebar.value) : []
-  })
-
-  function open() {
-    isOpen.value = true
-  }
-
-  function close() {
-    isOpen.value = false
-  }
-
-  function toggle() {
-    isOpen.value ? close() : open()
-  }
+  const sidebarGroups = computed(() => hasSidebar.value ? getSidebarGroups(sidebar.value) : [])
 
   return {
-    isOpen,
-    sidebar,
     sidebarGroups,
     hasSidebar,
     hasAside,
     leftAside,
-    isSidebarEnabled,
-    open,
-    close,
-    toggle,
-  }
-}
-
-/**
- * a11y: cache the element that opened the Sidebar (the menu button) then
- * focus that button again when Menu is closed with Escape key.
- */
-export function useCloseSidebarOnEscape(
-  isOpen: Ref<boolean>,
-  close: () => void,
-) {
-  let triggerElement: HTMLButtonElement | undefined
-
-  watchEffect(() => {
-    triggerElement = isOpen.value
-      ? (globalThis.document?.activeElement as HTMLButtonElement)
-      : undefined
-  })
-
-  onMounted(() => {
-    window.addEventListener('keyup', onEscape)
-  })
-
-  onUnmounted(() => {
-    window.removeEventListener('keyup', onEscape)
-  })
-
-  function onEscape(e: KeyboardEvent) {
-    if (e.key === 'Escape' && isOpen.value) {
-      close()
-      triggerElement?.focus()
-    }
   }
 }
 
 export function useSidebarControl(
   item: ComputedRef<DefaultTheme.SidebarItem>,
-): SidebarControl {
+) {
   const { page } = useData()
 
   const collapsed = ref(false)
-
-  const collapsible = computed(() => {
-    return item.value.collapsed != null
-  })
-
-  const isLink = computed(() => {
-    return !!item.value.link
-  })
+  const collapsible = computed(() => item.value.collapsed != null)
 
   const isActiveLink = ref(false)
   const updateIsActiveLink = () => {
@@ -164,36 +184,26 @@ export function useSidebarControl(
   const hasActiveLink = computed(() => {
     if (isActiveLink.value)
       return true
-
-    return item.value.items
-      ? containsActiveLink(page.value.relativePath, item.value.items)
-      : false
+    if (item.value)
+      return containsActiveLink(page.value.relativePath, item.value.items)
+    return false
   })
 
-  const hasChildren = computed(() => {
-    return (item.value.items?.length || 0) > 0
+  const hasChildren = computed(() => (item.value.items?.length || 0) > 0)
+
+  watchEffect(() => {
+    collapsed.value = collapsible.value && item.value.collapsed
   })
 
   watchEffect(() => {
-    collapsed.value = !!(collapsible.value && item.value.collapsed)
-  })
-
-  watchPostEffect(() => {
-    ;(isActiveLink.value || hasActiveLink.value) && (collapsed.value = false)
-  })
-
-  function toggle() {
-    if (collapsible.value)
-      collapsed.value = !collapsed.value
-  }
+    if (isActiveLink.value || hasActiveLink.value)
+      collapsed.value = false
+  }, { flush: 'post' })
 
   return {
     collapsed,
-    collapsible,
-    isLink,
     isActiveLink,
     hasActiveLink,
     hasChildren,
-    toggle,
   }
 }

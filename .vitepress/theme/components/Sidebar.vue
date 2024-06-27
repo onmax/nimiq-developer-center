@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 import { useScrollLock } from '@vueuse/core'
 import type { DefaultTheme } from 'vitepress'
+import { Accordion } from 'radix-vue/namespaced'
 import { inBrowser } from 'vitepress'
 import { ref, watch } from 'vue'
-import { useSidebar } from '../composables/useSidebar'
+import { useSidebar, useSidebarControl } from '../composables/useSidebar'
 
 const props = defineProps<{
   open: boolean
@@ -31,14 +32,14 @@ watch(
 </script>
 
 <template>
-  <aside v-if="hasSidebar" class="VPSidebar raw" scroll-sm of-y-auto border-right bg-neutral-0 mb-2 :class="{ open }">
+  <aside v-if="hasSidebar" class="VPSidebar raw" scroll-sm of-y-auto border-right bg-neutral-0 :class="{ open }">
     <nav aria-labelledby="sidebar-aria-label" tabindex="-1" pb-40 h-full relative>
       <span id="sidebar-aria-label" sr-only>Sidebar Navigation</span>
 
       <template v-for="group in sidebarGroups" :key="group.text">
-        <div w-full border-top sticky top-0 bottom--1 z-1 bg-neutral-0 cursor-pointer>
-          <div pt-24 pb-16>
-            <!-- <a :href="withBase(group.link)" :data-index="i" mx--8 px-8 focus-visible="outline-blue bg-blue/6">
+        <!-- <div w-full border-top sticky top-0 bottom--1 z-1 bg-neutral-0 cursor-pointer> -->
+        <!-- <div pt-24 pb-16> -->
+        <!-- <a :href="withBase(group.link)" :data-index="i" mx--8 px-8 focus-visible="outline-blue bg-blue/6">
               <p v-if="group.prefix" text-16 op50 font-semibold relative text-left>
                 {{ group.prefix }}
               </p>
@@ -49,18 +50,32 @@ watch(
                 </h3>
               </div>
             </a> -->
-            <div
+        <!-- <div
               absolute inset-x-0 bottom--16 h-16 pointer-events-none
               bg-gradient="to-b from-neutral-0 to-transparent"
-            />
-          </div>
-        </div>
+            /> -->
+        <!-- </div> -->
+        <!-- </div> -->
 
-        <ul pb-20>
-          <li v-for="item in group.items" :key="item.text">
-            <SidebarItem :item="item" :depth="0" :class="item.items ? 'my-32' : ''" />
-          </li>
-        </ul>
+        <Accordion.Root type="single" :default-value="(group.items.some(i => i.collapsed || useSidebarControl(computed(() => i)).hasActiveLink)) ? group.text : ''" collapsible>
+          <Accordion.Item :value="group.text">
+            <Accordion.Header as="div">
+              <div flex="~ items-center gap-8" w-full border="1.5 neutral-600" pl-12>
+                <span flex-1>{{ group.text }}</span>
+                <Accordion.Trigger class="group" border-l="1.5 neutral-600 solid" h-full self-stretch p-12 bg-neutral-400>
+                  <div i-nimiq:chevron-down text="10 neutral-900" op70 transition-transform duration-300 rotate="-90 group-data-[state=open]:!0" />
+                </Accordion.Trigger>
+              </div>
+            </Accordion.Header>
+            <Accordion.Content class="accordion-content" of-hidden pb-8>
+              <ul border-b="1.5 neutral-500">
+                <li v-for="item in group.items" :key="item.text">
+                  <SidebarItem :item="item" :depth="0" />
+                </li>
+              </ul>
+            </Accordion.Content>
+          </Accordion.Item>
+        </Accordion.Root>
       </template>
     </nav>
   </aside>

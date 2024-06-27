@@ -11,12 +11,9 @@ const props = defineProps<{
 
 const {
   collapsed,
-  // collapsible,
-  // isLink,
   isActiveLink,
   hasActiveLink,
   hasChildren,
-  // toggle,
 } = useSidebarControl(computed(() => props.item))
 const linkRef = ref<HTMLAnchorElement | null>(null)
 
@@ -100,21 +97,23 @@ function treatAsHtml(filename: string): boolean {
 
 <template>
   <div>
-    <a v-if="!hasChildren" ref="linkRef" :rel="item.rel" :href="normalizeLink(item.link)" :target="item.target" flex="~ items-center gap-8" :class="{ 'font-bold text-blue': isActiveLink, 'op-80': !isActiveLink }" transition-all py-8>
-      <div w-2 h-19 rounded-2 :bg="isActiveLink ? 'blue' : 'transparent'" transition-colors />
+    <a v-if="!hasChildren" ref="linkRef" :rel="item.rel" :href="normalizeLink(item.link)" :target="item.target" flex="~ items-center gap-8" :class="{ 'font-bold text-blue': isActiveLink, 'op-80': !isActiveLink }" transition-all py-8 border="1.5 neutral-600">
+      <div w-2 h-19 :bg="isActiveLink ? 'blue' : 'transparent'" transition-colors />
       {{ item.text }}
     </a>
 
     <Accordion.Root v-else type="single" :default-value="(collapsed || hasActiveLink) ? item.text : ''" collapsible>
       <Accordion.Item :value="item.text">
         <Accordion.Header as="div">
-          <Accordion.Trigger class="group" flex="~ items-center gap-8">
-            <div i-nimiq:chevron-down text-10 op70 transition-transform duration-300 rotate="-90 group-data-[state=open]:!0" />
-            <span label op-80>{{ item.text }}</span>
-          </Accordion.Trigger>
+          <div flex="~ items-center gap-8" w-full border="1.5 neutral-600" pl-12>
+            <span flex-1>{{ item.text }}</span>
+            <Accordion.Trigger class="group" border-l="1.5 neutral-600 solid" h-full self-stretch p-12 bg-neutral-400>
+              <div i-nimiq:chevron-down text="10 neutral-900" op70 transition-transform duration-300 rotate="-90 group-data-[state=open]:!0" />
+            </Accordion.Trigger>
+          </div>
         </Accordion.Header>
-        <Accordion.Content class="accordion-content" of-hidden pl-8>
-          <ul mt-4 bottom--8 relative>
+        <Accordion.Content class="accordion-content" of-hidden pb-8>
+          <ul relative>
             <li v-for="sub in item.items " :key="sub.text">
               <SidebarItem :item="sub" :depth="depth + 1" />
             </li>

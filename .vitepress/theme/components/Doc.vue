@@ -10,9 +10,7 @@ const { theme, frontmatter } = useData()
 const route = useRoute()
 const { hasSidebar, hasAside, leftAside } = useSidebar()
 
-const pageName = computed(() =>
-  route.path.replace(/[./]+/g, '_').replace(/_html$/, ''),
-)
+const pageName = computed(() => route.path.replace(/[./]+/g, '_').replace(/_html$/, ''))
 </script>
 
 <template>

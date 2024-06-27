@@ -94,8 +94,6 @@ export const sidebar: DefaultTheme.Sidebar = {
   '/migration/': [
     {
       text: 'Migration',
-      icon: 'i-nimiq:icons-lg-sparkling-swap',
-      link: '/migration/',
       items: [
         { text: 'Guide for Validators', link: '/migration/migration-validators' },
         { text: 'Guide for Node Operators', link: '/migration/node-operators' },
@@ -109,7 +107,6 @@ export const sidebar: DefaultTheme.Sidebar = {
   '/build/': [
     {
       text: 'Build',
-      icon: 'i-nimiq:icons-lg-tools',
       link: '/build/',
       items: [
         { text: 'Overview', link: '/build/' },
@@ -118,9 +115,7 @@ export const sidebar: DefaultTheme.Sidebar = {
       ],
     },
     {
-      prefix: 'Use the',
       text: 'Web client',
-      icon: 'i-nimiq:icons-lg-bulb',
       link: '/build/web-client/',
 
       // Needs to be dynamic. The first time the developer does run the project in needs to run the
@@ -142,8 +137,6 @@ export const sidebar: DefaultTheme.Sidebar = {
     },
     {
       text: 'Own Node',
-      prefix: 'Set up your',
-      icon: 'i-nimiq:server',
       link: '/build/set-up-your-own-node/',
       items: [
         { text: 'Overview', link: '/build/set-up-your-own-node/' },
